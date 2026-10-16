@@ -277,22 +277,43 @@ function renderBackupStatus() {
   const days = Math.floor((Date.now() - new Date(last)) / 864e5);
   $("backup-status").textContent = `${n} games saved. Last backup: ${days === 0 ? "today" : days + " day" + (days > 1 ? "s" : "") + " ago"}.`;
 }
+// Android's share menu only accepts certain file types (not .json), so on phones the
+// backup is shared as a .txt file (same JSON content). Computers get a normal download.
+const isPhone = /Android|iPhone|iPad/i.test(navigator.userAgent);
+function downloadBackup(text, name) {
+  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
+  const a = document.createElement("a");
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+}
+function backupMsg(text, isError) {
+  $("backup-msg").textContent = text;
+  $("backup-msg").className = "msg" + (isError ? " neg" : "");
+}
 $("btn-export").addEventListener("click", async () => {
   const data = { app: "euroleague-balance", version: 1, exported: new Date().toISOString(), games: Object.values(games) };
-  const name = `euroleague-balance-${new Date().toISOString().slice(0, 10)}.json`;
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-  const file = new File([blob], name, { type: "application/json" });
+  const text = JSON.stringify(data, null, 2);
+  const base = `euroleague-balance-${new Date().toISOString().slice(0, 10)}`;
+  backupMsg("");
   try {
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({ files: [file], title: "EuroLeague Balance backup" });
+    const file = new File([text], base + ".txt", { type: "text/plain" });
+    if (isPhone && navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "EuroLeague Balance backup" });
+        backupMsg("Backup shared. Save it somewhere safe, e.g. Google Drive.");
+      } catch (err) {
+        if (err && err.name === "AbortError") { backupMsg("Backup cancelled."); return; }
+        downloadBackup(text, base + ".json");
+        backupMsg("Sharing didn't work, so the backup was downloaded instead (check Downloads).");
+      }
     } else {
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob); a.download = name; a.click();
-      setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      downloadBackup(text, base + ".json");
+      backupMsg("Backup downloaded (check your Downloads folder).");
     }
-    localStorage.setItem(BACKUP_KEY, new Date().toISOString());
+    try { localStorage.setItem(BACKUP_KEY, new Date().toISOString()); } catch {}
   } catch (err) {
-    if (err && err.name === "AbortError") return; // user closed the share sheet
+    backupMsg("Backup failed: " + (err && err.message ? err.message : err), true);
   }
   renderBackupStatus();
 });

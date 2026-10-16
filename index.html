@@ -27,7 +27,8 @@
         <button class="btn" id="btn-export">Export backup</button>
         <button class="btn ghost" id="btn-import">Import backup</button>
       </div>
-      <input type="file" id="import-file" accept=".json,application/json" hidden>
+      <p id="backup-msg" class="msg" role="status"></p>
+      <input type="file" id="import-file" accept=".json,.txt,application/json,text/plain" hidden>
       <div id="import-confirm" class="confirm" hidden>
         <p id="import-msg"></p>
         <div class="row">

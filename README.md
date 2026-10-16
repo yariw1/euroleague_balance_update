@@ -38,8 +38,8 @@ Only regular-season games are tracked. Play-in and playoff games aren't included
 
 Clearing Chrome's data, uninstalling the app or changing phones deletes the saved results. To protect them:
 
-- **Export backup** (Balance screen) creates a `.json` file. Save it to Google Drive from the share menu.
-- **Import backup** restores a backup file. It replaces the results currently on the phone and asks you to confirm first.
+- **Export backup** (Balance screen): on a phone it opens the share menu with a `.txt` backup file (Android doesn't allow sharing `.json` files), so you can save it to Google Drive. On a computer it downloads a `.json` file. Both contain the same data.
+- **Import backup** restores a backup file (`.txt` or `.json`). It replaces the results currently on the phone and asks you to confirm first.
 
 The Balance screen shows how long ago the last backup was made.
 
