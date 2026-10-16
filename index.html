@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#14182b">
+<title>EuroLeague Balance</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <h1>EuroLeague Balance</h1>
+  <span class="sub">2026-27 vs 2025-26</span>
+</header>
+
+<main>
+  <!-- BALANCE -->
+  <section id="view-balance" class="view">
+    <div id="balance-cards"></div>
+    <div class="card backup">
+      <h2>Backup</h2>
+      <p class="muted" id="backup-status"></p>
+      <div class="row">
+        <button class="btn" id="btn-export">Export backup</button>
+        <button class="btn ghost" id="btn-import">Import backup</button>
+      </div>
+      <input type="file" id="import-file" accept=".json,application/json" hidden>
+      <div id="import-confirm" class="confirm" hidden>
+        <p id="import-msg"></p>
+        <div class="row">
+          <button class="btn danger" id="btn-import-yes">Replace my data</button>
+          <button class="btn ghost" id="btn-import-no">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ADD / EDIT -->
+  <section id="view-add" class="view" hidden>
+    <div class="card">
+      <h2 id="add-title">Add a game</h2>
+      <label class="lbl">Team</label>
+      <div class="seg" id="add-team"></div>
+      <label class="lbl" for="add-opp">Opponent</label>
+      <select id="add-opp"></select>
+      <label class="lbl">Location</label>
+      <div class="seg" id="add-loc"></div>
+      <label class="lbl">Result</label>
+      <div class="seg" id="add-res"></div>
+      <label class="lbl">Score <span class="muted">(optional)</span></label>
+      <div class="score-row">
+        <input type="number" inputmode="numeric" id="add-s1" placeholder="Team">
+        <span>–</span>
+        <input type="number" inputmode="numeric" id="add-s2" placeholder="Opp.">
+      </div>
+      <div id="add-preview" class="preview"></div>
+      <button class="btn big" id="btn-save">Save game</button>
+      <div class="row" id="edit-actions" hidden>
+        <button class="btn danger ghost" id="btn-delete">Delete this game</button>
+      </div>
+      <p id="add-msg" class="msg" role="status"></p>
+    </div>
+  </section>
+
+  <!-- LOOKUP -->
+  <section id="view-lookup" class="view" hidden>
+    <div class="card">
+      <h2>Look up a game</h2>
+      <label class="lbl">Team</label>
+      <div class="seg" id="lk-team"></div>
+      <label class="lbl" for="lk-opp">Opponent</label>
+      <select id="lk-opp"></select>
+      <label class="lbl">Location</label>
+      <div class="seg" id="lk-loc"></div>
+      <div id="lk-result" class="compare"></div>
+    </div>
+  </section>
+
+  <!-- TABLE -->
+  <section id="view-table" class="view" hidden>
+    <div class="seg wide" id="tb-team"></div>
+    <div class="seg wide" id="tb-sort"></div>
+    <div class="table-wrap">
+      <table class="games">
+        <thead><tr><th>Opponent</th><th>H/A</th><th>25-26</th><th>26-27</th><th>±</th></tr></thead>
+        <tbody id="tb-body"></tbody>
+        <tfoot id="tb-foot"></tfoot>
+      </table>
+    </div>
+    <p class="muted small">Tap a row to add or edit this season's result.</p>
+  </section>
+</main>
+
+<nav class="tabs">
+  <button data-view="balance" class="active"><span class="ico">⚖️</span>Balance</button>
+  <button data-view="add"><span class="ico">➕</span>Add</button>
+  <button data-view="lookup"><span class="ico">🔍</span>Look up</button>
+  <button data-view="table"><span class="ico">📋</span>Table</button>
+</nav>
+
+<script src="data-2025-26.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
