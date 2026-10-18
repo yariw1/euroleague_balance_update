@@ -17,6 +17,8 @@ Each team plays 38 regular-season games: every opponent once at home and once aw
 
 The team balance is the sum over all games played so far this season.
 
+**Villeurbanne** is the team also known as ASVEL.
+
 **Monaco/Besiktas:** Besiktas replaced Monaco in the league, so this season's Besiktas games are compared with last season's Monaco games. The app shows that opponent as "Monaco/Besiktas".
 
 Only regular-season games are tracked. Play-in and playoff games aren't included.
@@ -24,9 +26,9 @@ Only regular-season games are tracked. Play-in and playoff games aren't included
 ## Screens
 
 - **Balance**: each team's current balance and how many games were better, worse or the same. Also has the backup buttons.
-- **Add**: choose team, opponent, home/away and win/loss (score optional). It shows last season's result and the effect on the balance before you save.
+- **Add**: choose team, opponent, home/away and win/loss. Score and date are optional; the date starts as today. It shows last season's result and the effect on the balance before you save.
 - **Look up**: pick any game to see both seasons side by side.
-- **Table**: all 38 games for a team, sorted by opponent or by last season's date. Tap a row to add, edit or delete this season's result.
+- **Table**: all 38 games for a team, sorted by opponent, by last season's date, or by this season's date (games not played yet come after, in last season's order). Tap a row to add, edit or delete this season's result.
 
 ## Your data and privacy
 
@@ -63,8 +65,8 @@ The Balance screen shows how long ago the last backup was made.
 
 ## Updating the app
 
-After changing any file, change the version in `sw.js` (for example `elb-v3` → `elb-v4`) and upload the changed files to GitHub. Phones then pick up the new version the next time the app is opened with internet (sometimes it takes a second open). Saved results aren't affected.
+After changing any file, change the version in `sw.js` (for example `elb-v5` → `elb-v6`) and upload the changed files to GitHub. Phones then pick up the new version the next time the app is opened with internet (sometimes it takes a second open). Saved results aren't affected.
 
 ## Data source
 
-Last season's results come from Wikipedia's "2025–26 EuroLeague regular season" page. Home and away are taken from the official EuroLeague game links. The results were checked against the final standings (Hapoel 23-15, Maccabi 18-20) and reviewed by hand.
+Last season's results (including scores, which are stored but not shown in the app) come from Wikipedia's "2025–26 EuroLeague regular season" page. Home and away are taken from the official EuroLeague game links. The results were checked against the final standings (Hapoel 23-15, Maccabi 18-20) and reviewed by hand.

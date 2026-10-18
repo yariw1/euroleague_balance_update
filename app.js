@@ -13,10 +13,21 @@ function loadGames() {
 function saveGames(games) {
   localStorage.setItem(STORE_KEY, JSON.stringify(games));
 }
-let games = loadGames(); // key "team|opponent|H" -> {team, opponent, location, result, score, saved}
-if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-
 const key = (team, opp, loc) => `${team}|${opp}|${loc}`;
+// Opponents that were renamed in the app (old saved name -> current name).
+const RENAMED = { "ASVEL": "Villeurbanne" };
+function migrate(list) {
+  const out = {};
+  for (const g of list) {
+    if (RENAMED[g.opponent]) g.opponent = RENAMED[g.opponent];
+    out[key(g.team, g.opponent, g.location)] = g;
+  }
+  return out;
+}
+
+let games = loadGames(); // key "team|opponent|H" -> {team, opponent, location, result, score, date, saved}
+if (Object.values(games).some(g => RENAMED[g.opponent])) { games = migrate(Object.values(games)); saveGames(games); }
+if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 // Display name: a replaced team shows both names, e.g. "Monaco/Besiktas".
 const oppName = opp => (OPPONENT_ALIAS[opp] ? `${OPPONENT_ALIAS[opp]}/${opp}` : opp);
 
@@ -53,6 +64,10 @@ const signed = n => (n > 0 ? "+" + n : String(n));
 const tone = n => (n > 0 ? "pos" : n < 0 ? "neg" : "zero");
 const locName = l => (l === "H" ? "Home" : "Away");
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// Dates: last season uses "4 December 2025", this season "2026-10-16" (read as a local date).
+const toTime = d => (!d ? NaN : new Date(/^\d{4}-\d{2}-\d{2}$/.test(d) ? d + "T00:00" : d).getTime());
+const shortDate = d => { const t = toTime(d); return isNaN(t) ? (d || "") : new Date(t).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" }); };
+const todayISO = () => { const d = new Date(); return new Date(d - d.getTimezoneOffset() * 6e4).toISOString().slice(0, 10); };
 
 function makeSeg(el, options, value, onChange) {
   el.innerHTML = "";
@@ -121,16 +136,22 @@ function resetAdd() {
   add.editing = false;
   add.res = null;
   $("add-s1").value = $("add-s2").value = "";
+  $("add-date").value = todayISO();
   $("add-msg").textContent = "";
   armDelete(false);
   syncAddForm();
+}
+// Fill the score and date fields from a saved game (or blank score + today's date for a new one).
+function fillDetails(g) {
+  const [s1, s2] = g && g.score ? g.score.split("-") : ["", ""];
+  $("add-s1").value = s1 || ""; $("add-s2").value = s2 || "";
+  $("add-date").value = g ? g.date || "" : todayISO();
 }
 function openEdit(team, opp, loc) {
   const g = games[key(team, opp, loc)];
   add.team = team; add.loc = loc; add.editing = !!g;
   add.res = g ? g.result : null;
-  const [s1, s2] = g && g.score ? g.score.split("-") : ["", ""];
-  $("add-s1").value = s1 || ""; $("add-s2").value = s2 || "";
+  fillDetails(g);
   $("add-msg").textContent = "";
   armDelete(false);
   syncAddForm(opp);
@@ -148,8 +169,7 @@ function slotChanged() {
   const g = games[key(add.team, $("add-opp").value, add.loc)];
   add.editing = !!g;
   add.res = g ? g.result : null;
-  const [s1, s2] = g && g.score ? g.score.split("-") : ["", ""];
-  $("add-s1").value = s1 || ""; $("add-s2").value = s2 || "";
+  fillDetails(g);
   setSeg($("add-res"), add.res);
   $("add-msg").textContent = "";
   armDelete(false);
@@ -167,7 +187,7 @@ function renderPreview() {
   $("btn-save").disabled = !add.res;
 
   let html = prev
-    ? `Last season (${locName(add.loc)}): <b>${prev.result === "W" ? "Win" : "Loss"}</b> <span class="muted">${esc(prev.score)}</span>`
+    ? `Last season (${locName(add.loc)}): <b>${prev.result === "W" ? "Win" : "Loss"}</b> <span class="muted">${esc(shortDate(prev.date))}</span>`
     : `No matching game last season.`;
   if (add.res) {
     const e = effect(prev, { result: add.res });
@@ -182,8 +202,9 @@ $("btn-save").addEventListener("click", () => {
   const opp = $("add-opp").value;
   const s1 = $("add-s1").value.trim(), s2 = $("add-s2").value.trim();
   const score = s1 && s2 ? `${parseInt(s1, 10)}-${parseInt(s2, 10)}` : "";
+  const date = $("add-date").value; // "YYYY-MM-DD" or "" if left empty
   const wasEdit = !!games[key(add.team, opp, add.loc)];
-  games[key(add.team, opp, add.loc)] = { team: add.team, opponent: opp, location: add.loc, result: add.res, score, saved: new Date().toISOString() };
+  games[key(add.team, opp, add.loc)] = { team: add.team, opponent: opp, location: add.loc, result: add.res, score, date, saved: new Date().toISOString() };
   saveGames(games);
   const e = effect(lastSeason(add.team, opp, add.loc), { result: add.res });
   $("add-msg").innerHTML = `${wasEdit ? "Updated" : "Saved"}: ${SHORT[add.team]} vs ${esc(oppName(opp))} (${locName(add.loc)}) — balance now <span class="${tone(summary(add.team).bal)}">${signed(summary(add.team).bal)}</span> (${signed(e)})`;
@@ -204,7 +225,7 @@ $("btn-delete").addEventListener("click", () => {
   saveGames(games);
   add.res = null; add.editing = false;
   setSeg($("add-res"), null);
-  $("add-s1").value = $("add-s2").value = "";
+  fillDetails(null);
   $("add-msg").textContent = `Deleted ${SHORT[add.team]} vs ${oppName(opp)} (${locName(add.loc)}).`;
   armDelete(false);
   renderPreview();
@@ -222,11 +243,12 @@ function renderLookup() {
   const opp = $("lk-opp").value;
   const prev = lastSeason(lk.team, opp, lk.loc);
   const now = games[key(lk.team, opp, lk.loc)];
-  const box = (season, g, extra) => `<div class="box"><div class="season">${season}</div>
+  const box = (season, g, details) => `<div class="box"><div class="season">${season}</div>
     <div class="res">${g ? `<span class="chip ${g.result}">${g.result}</span>` : `<span class="dash">—</span>`}</div>
-    <div class="det">${g ? esc(g.score || "") + (extra ? " · " + extra : "") : "Not played yet"}</div></div>`;
-  let html = box("2025-26", prev, prev ? "Rd " + prev.round : "")
-           + box("2026-27", now, "");
+    <div class="det">${g ? esc(details.filter(Boolean).join(" · ")) : "Not played yet"}</div></div>`;
+  // Last season's scores are kept in the data but not shown.
+  let html = box("2025-26", prev, prev ? [shortDate(prev.date), "Rd " + prev.round] : [])
+           + box("2026-27", now, now ? [now.score, shortDate(now.date)] : []);
   if (prev && now) { const e = effect(prev, now); html += `<div class="eff ${tone(e)}">Effect: ${signed(e)}</div>`; }
   $("lk-result").innerHTML = html;
 }
@@ -234,27 +256,41 @@ function renderLookup() {
 // ---------- table ----------
 let tbTeam = TEAMS[0];
 let tbSort = "opp";
-const SORT_OPTS = [{ label: "By opponent", value: "opp" }, { label: "By date (25-26)", value: "date" }];
-const shortDate = d => { const t = new Date(d); return isNaN(t) ? d : t.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "2-digit" }); };
+const SORT_OPTS = [{ label: "Opponent", value: "opp" }, { label: "Date 25-26", value: "date" }, { label: "Date 26-27", value: "date-now" }];
 function renderTable() {
   makeSeg($("tb-team"), TEAM_OPTS, tbTeam, v => { tbTeam = v; renderTable(); });
   makeSeg($("tb-sort"), SORT_OPTS, tbSort, v => { tbSort = v; renderTable(); });
   const slots = [];
   for (const opp of opponentsFor(tbTeam)) {
-    for (const loc of ["H", "A"]) slots.push({ opp, loc, prev: lastSeason(tbTeam, opp, loc) });
+    for (const loc of ["H", "A"]) slots.push({ opp, loc, prev: lastSeason(tbTeam, opp, loc), now: games[key(tbTeam, opp, loc)] });
   }
-  if (tbSort === "date") {
-    // Actual game date (some games were postponed, so round order isn't always date order).
-    const when = s => (s.prev ? new Date(s.prev.date).getTime() || 0 : Infinity);
-    slots.sort((a, b) => when(a) - when(b) || (a.prev?.round || 0) - (b.prev?.round || 0));
+  // Actual game date (some games were postponed, so round order isn't always date order).
+  const prevWhen = s => (s.prev ? toTime(s.prev.date) || 0 : Infinity);
+  const byPrev = (a, b) => prevWhen(a) - prevWhen(b) || (a.prev?.round || 0) - (b.prev?.round || 0);
+  const nowWhen = s => (s.now ? toTime(s.now.date) : NaN);
+  if (tbSort === "date") slots.sort(byPrev);
+  if (tbSort === "date-now") {
+    // This season's games by their date first, then the rest by last season's date.
+    slots.sort((a, b) => {
+      const ta = nowWhen(a), tb = nowWhen(b);
+      if (!isNaN(ta) && !isNaN(tb)) return ta - tb || byPrev(a, b);
+      if (!isNaN(ta)) return -1;
+      if (!isNaN(tb)) return 1;
+      return byPrev(a, b);
+    });
   }
   let rows = "", total = 0;
-  for (const { opp, loc, prev } of slots) {
-    const now = games[key(tbTeam, opp, loc)];
+  for (const { opp, loc, prev, now } of slots) {
     const e = now ? effect(prev, now) : null;
     if (e) total += e;
     const chip = g => g ? `<span class="chip ${g.result}">${g.result}</span>` : `<span class="dash">·</span>`;
-    const sub = tbSort === "date" && prev ? `<div class="sub-date">${shortDate(prev.date)} · Rd ${prev.round} · ${esc(prev.score)}</div>` : "";
+    let subText = "";
+    if (tbSort === "date" && prev) subText = `${shortDate(prev.date)} · Rd ${prev.round}`;
+    if (tbSort === "date-now") {
+      if (now && now.date) subText = [shortDate(now.date), now.score].filter(Boolean).join(" · ");
+      else if (prev) subText = `25-26: ${shortDate(prev.date)}`;
+    }
+    const sub = subText ? `<div class="sub-date">${esc(subText)}</div>` : "";
     rows += `<tr data-opp="${esc(opp)}" data-loc="${loc}">
       <td>${esc(oppName(opp))}${sub}</td><td>${loc}</td><td>${chip(prev)}</td><td>${chip(now)}</td>
       <td class="${e === null ? "dash" : tone(e)}">${e === null ? "" : signed(e)}</td></tr>`;
@@ -327,7 +363,7 @@ $("import-file").addEventListener("change", async e => {
   try {
     const data = JSON.parse(await f.text());
     if (data.app !== "euroleague-balance" || !Array.isArray(data.games)) throw new Error("bad");
-    const valid = data.games.filter(g => TEAMS.includes(g.team) && opponentsFor(g.team).includes(g.opponent)
+    const valid = data.games.filter(g => TEAMS.includes(g.team) && opponentsFor(g.team).includes(RENAMED[g.opponent] || g.opponent)
       && (g.location === "H" || g.location === "A") && (g.result === "W" || g.result === "L"));
     pendingImport = valid;
     $("import-msg").textContent = `This backup has ${valid.length} games (from ${String(data.exported || "").slice(0, 10)}). It will replace the ${Object.keys(games).length} games on this phone.`;
@@ -343,8 +379,7 @@ $("import-file").addEventListener("change", async e => {
 });
 $("btn-import-yes").addEventListener("click", () => {
   if (!pendingImport) return;
-  games = {};
-  for (const g of pendingImport) games[key(g.team, g.opponent, g.location)] = g;
+  games = migrate(pendingImport);
   saveGames(games);
   pendingImport = null;
   $("import-confirm").hidden = true;

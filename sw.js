@@ -1,6 +1,6 @@
 // Caches the app files so it opens instantly and works offline.
 // Bump CACHE when any app file changes, so phones pick up the new version.
-const CACHE = "elb-v4";
+const CACHE = "elb-v5";
 const FILES = ["./", "index.html", "style.css", "app.js", "data-2025-26.js", "manifest.webmanifest", "icons/icon-192.png", "icons/icon-512.png"];
 
 self.addEventListener("install", e => {

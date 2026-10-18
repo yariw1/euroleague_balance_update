@@ -73,7 +73,7 @@ h2 { font-size: 1.05rem; margin: 0 0 10px; }
 
 /* Forms */
 .lbl { display: block; font-size: .85rem; color: var(--muted); margin: 12px 0 6px; }
-select, input[type=number] {
+select, input[type=number], input[type=date] {
   width: 100%; font: inherit; color: var(--text); background: var(--bg);
   border: 1px solid var(--line); border-radius: 10px; padding: 12px;
 }
